@@ -17,4 +17,4 @@ Wizyjny system analizy ruchu drogowego w czasie rzeczywistym. Aplikacja pobiera 
 ## Uruchomienie lokalne
 1. Sklonuj repozytorium.
 2. Zainstaluj wymagane pakiety: `pip install -r requirements.txt`
-3. Uruchom aplikację: `streamlit run smart_city_pro.py`
+3. Uruchom aplikację: `streamlit run smart_city.py`
