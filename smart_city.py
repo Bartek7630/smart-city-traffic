@@ -62,6 +62,7 @@ CLASS_NAMES = {2: "Samochody 🚗", 3: "Motocykle 🏍️", 5: "Autobusy 🚌", 
 
 @st.cache_resource
 def load_model():
+    # ZMIANA: Używamy ultra-lekkiego modelu w wersji Nano
     return YOLO('yolov8n.pt')
 
 model = load_model()
@@ -73,9 +74,10 @@ st.sidebar.header("⚙️ Ustawienia Systemu")
 device = "GPU" if torch.cuda.is_available() else "CPU"
 st.sidebar.info(f"Silnik AI działa na: **{device}**")
 
+# ZMIANA: Domyślnie podpowiadamy użycie bezpośredniego strumienia wideo
 youtube_url = st.sidebar.text_input(
-    "Link do wideo (YouTube lub .mp4):", 
-    "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+    "Link do wideo (YouTube, .mp4, .m3u8):", 
+    "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
 )
 
 congestion_threshold = st.sidebar.slider("Próg zatoru (aut na ekranie)", 2, 50, 10)
@@ -105,13 +107,13 @@ with col2:
 # 4. GŁÓWNA PĘTLA ANALITYCZNA
 # ==========================================
 if start_button:
-    # Zmieniony warunek, aby przepuszczał linki .mp4
+    # ZMIANA: Przepuszczamy formaty kamer internetowych
     if "youtube.com" not in youtube_url and "youtu.be" not in youtube_url and not any(ext in youtube_url for ext in [".mp4", ".m3u8", ".avi"]):
         st.error("Wklej poprawny link do YouTube lub bezpośredni strumień kamery (.mp4, .m3u8)")
     else:
         with st.spinner("Łączenie ze strumieniem..."):
             try:
-                # Omijamy streamlink dla bezpośrednich strumieni wideo
+                # Omijamy dekoder YouTube dla czystych strumieni wideo
                 if any(ext in youtube_url for ext in [".mp4", ".m3u8", ".avi"]):
                     stream_url = youtube_url
                 else:
@@ -131,24 +133,30 @@ if start_button:
                 last_alert_state = None 
                 track_history = defaultdict(lambda: [])
                 
-                # --- LIMITER ODŚWIEŻANIA UI ---
-                UI_FPS_LIMIT = 6 # Renderujemy stronę maksymalnie 15 razy na sekundę
+                # --- OPTYMALIZACJA WYDAJNOŚCI ---
+                UI_FPS_LIMIT = 4 # Wyświetlamy max 4 klatki na sekundę
                 ui_refresh_interval = 1.0 / UI_FPS_LIMIT
                 last_ui_update_time = time.time()
-                frame_counter = 0
-                st.sidebar.success("System połączony. Zoptymalizowano UI (Throttling aktywny).")
+                frame_counter = 0 # Licznik klatek do omijania
+                
+                st.sidebar.success("System połączony. Tryb ultra-lekki aktywny.")
                 time.sleep(1)
                 
                 while stream_reader.cap.isOpened() and not stop_button:
                     ret, frame = stream_reader.read()
                     
                     if not ret or frame is None: 
-                        st.error("❌ Nie można odczytać klatki wideo.")
+                        st.error("❌ Nie można odczytać klatki wideo. Strumień się zakończył lub nastąpiła blokada.")
                         break 
-                    frame_counter += 1 
-                    if frame_counter % 3 != 0:
+                    
+                    frame_counter += 1
+                    
+                    # Odciążamy procesor: AI analizuje tylko co 5 klatkę
+                    if frame_counter % 5 != 0:
                         continue
-                    results = model.track(frame, persist=True, classes=[2, 3, 5, 7], verbose=False)
+                        
+                    # ZMIANA: Mniejsza rozdzielczość dla szybszej analizy (imgsz=320)
+                    results = model.track(frame, persist=True, classes=[2, 3, 5, 7], verbose=False, imgsz=320)
                     annotated_frame = results[0].plot()
                     
                     current_vehicles_in_frame = 0
@@ -210,11 +218,10 @@ if start_button:
                         
                         last_save_time = current_time
                     
-                    # ==========================================
-                    # OPTYMALIZACJA WYŚWIETLANIA (UI THROTTLING)
-                    # ==========================================
+                    # --- WYŚWIETLANIE (Z OGRANICZENIEM) ---
                     if current_time - last_ui_update_time >= ui_refresh_interval:
-                        _, buffer = cv2.imencode('.jpg', annotated_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 50])
+                        # Kompresja JPEG ustawiona na 40 dla lżejszego transferu przez internet
+                        _, buffer = cv2.imencode('.jpg', annotated_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 40])
                         video_placeholder.image(buffer.tobytes(), use_container_width=True)
                         
                         with stats_placeholder.container():
