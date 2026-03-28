@@ -106,13 +106,13 @@ with col2:
 # ==========================================
 if start_button:
     # Zmieniony warunek, aby przepuszczał linki .mp4
-    if "youtube.com" not in youtube_url and "youtu.be" not in youtube_url and ".mp4" not in youtube_url:
-        st.error("Wklej poprawny link do YouTube lub testowy plik .mp4")
+    if "youtube.com" not in youtube_url and "youtu.be" not in youtube_url and not any(ext in youtube_url for ext in [".mp4", ".m3u8", ".avi"]):
+        st.error("Wklej poprawny link do YouTube lub bezpośredni strumień kamery (.mp4, .m3u8)")
     else:
         with st.spinner("Łączenie ze strumieniem..."):
             try:
-                # Omijamy streamlink dla testowych plików wideo .mp4
-                if ".mp4" in youtube_url:
+                # Omijamy streamlink dla bezpośrednich strumieni wideo
+                if any(ext in youtube_url for ext in [".mp4", ".m3u8", ".avi"]):
                     stream_url = youtube_url
                 else:
                     streams = streamlink.streams(youtube_url)
