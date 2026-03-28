@@ -135,7 +135,8 @@ if start_button:
                     while stream_reader.cap.isOpened() and not stop_button:
                         ret, frame = stream_reader.read()
                         if not ret or frame is None: 
-                            continue 
+                            st.error("❌ Nie można odczytać klatki wideo. YouTube prawdopodobnie zablokował strumień lub połączenie zostało zerwane.")
+                            break 
                             
                         # Silnik AI pracuje na każdej klatce z pełną prędkością
                         results = model.track(frame, persist=True, classes=[2, 3, 5, 7], verbose=False)
