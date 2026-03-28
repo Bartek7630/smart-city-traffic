@@ -62,7 +62,7 @@ CLASS_NAMES = {2: "Samochody 🚗", 3: "Motocykle 🏍️", 5: "Autobusy 🚌", 
 
 @st.cache_resource
 def load_model():
-    return YOLO('yolov8s.pt')
+    return YOLO('yolov8n.pt')
 
 model = load_model()
 
@@ -132,22 +132,22 @@ if start_button:
                 track_history = defaultdict(lambda: [])
                 
                 # --- LIMITER ODŚWIEŻANIA UI ---
-                UI_FPS_LIMIT = 15 # Renderujemy stronę maksymalnie 15 razy na sekundę
+                UI_FPS_LIMIT = 6 # Renderujemy stronę maksymalnie 15 razy na sekundę
                 ui_refresh_interval = 1.0 / UI_FPS_LIMIT
                 last_ui_update_time = time.time()
-                
+                frame_counter = 0
                 st.sidebar.success("System połączony. Zoptymalizowano UI (Throttling aktywny).")
                 time.sleep(1)
                 
                 while stream_reader.cap.isOpened() and not stop_button:
                     ret, frame = stream_reader.read()
                     
-                    # Zabezpieczenie przed "cichym zawieszeniem"
                     if not ret or frame is None: 
-                        st.error("❌ Nie można odczytać klatki wideo. Strumień się zakończył, YouTube zablokował połączenie lub wystąpił błąd sieci.")
+                        st.error("❌ Nie można odczytać klatki wideo.")
                         break 
-                        
-                    # Silnik AI pracuje na każdej klatce z pełną prędkością
+                    frame_counter += 1 
+                    if frame_counter % 3 != 0:
+                        continue
                     results = model.track(frame, persist=True, classes=[2, 3, 5, 7], verbose=False)
                     annotated_frame = results[0].plot()
                     
