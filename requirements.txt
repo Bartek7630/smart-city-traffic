@@ -1,6 +1,7 @@
+opencv-python-headless==4.13.0.92
 streamlit
-opencv-python-headless
+pandas
 ultralytics
 streamlink
-pandas
 torch
+torchvision
