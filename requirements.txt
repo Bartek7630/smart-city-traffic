@@ -5,3 +5,4 @@ ultralytics
 streamlink
 torch
 torchvision
+lapx
